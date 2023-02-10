@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { catchError, map, Observable, tap, throwError } from 'rxjs';
+import { catchError, combineLatest, map, Observable, tap, throwError } from 'rxjs';
 
 import { Product } from './product';
+import { ProductCategoryService } from '../product-categories/product-category.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,7 @@ export class ProductService {
   private productsUrl = 'api/products';
   private suppliersUrl = 'api/suppliers';
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient , private categoryService:ProductCategoryService) { }
 
 //Get All Products:
   products$ = this.http.get<Product[]>(this.productsUrl)
@@ -22,6 +23,21 @@ export class ProductService {
       catchError(this.handleError)
     );
 
+  categories$ = this.categoryService.categories$
+
+    //Get Products and Categories:
+      productsWithCategories$ = combineLatest([
+        this.products$,
+        this.categories$
+      ]).pipe(
+        map(([products,categories]) =>
+          products.map(product => ({
+            ...product,
+            price: product.price! * 1.2,
+            category:categories.find(c =>product.categoryId === c.id )?.name
+          } as Product))
+        )
+      )
 
   private fakeProduct(): Product {
     return {
@@ -31,7 +47,7 @@ export class ProductService {
       description: 'Our new product',
       price: 8.9,
       categoryId: 3,
-      // category: 'Toolbox',
+      category: 'Toolbox',
       quantityInStock: 30
     };
   }
