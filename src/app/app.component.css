@@ -6,3 +6,7 @@
 .navbar-light .navbar-nav .nav-link.active {
   color: #007ACC
 }
+
+.navbar-expand{
+  justify-content: center !important;
+}
