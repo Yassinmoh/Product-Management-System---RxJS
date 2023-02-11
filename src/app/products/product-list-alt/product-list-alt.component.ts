@@ -12,18 +12,24 @@ import { ProductService } from '../product.service';
 export class ProductListAltComponent {
   pageTitle = 'Products';
   errorMessage = '';
-  selectedProductId = 0;
 
-  products$ =this.productService.products$.pipe(
-    catchError(err =>{
-      this.errorMessage =err;
+  products$ = this.productService.productsWithCategories$.pipe(
+    catchError(err => {
+      this.errorMessage = err;
       return EMPTY
-    } )
+    })
+  )
+
+  selectedProduct$ = this.productService.selectedProduct$.pipe(
+    catchError(err => {
+      this.errorMessage = err;
+      return EMPTY
+    })
   )
   constructor(private productService: ProductService) { }
 
 
   onSelected(productId: number): void {
-    console.log('Not yet implemented');
+    this.productService.onSelectedProductChanges(productId)
   }
 }

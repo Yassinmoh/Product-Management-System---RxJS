@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { catchError, combineLatest, map, Observable, tap, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, combineLatest, map, Observable, startWith, tap, throwError } from 'rxjs';
 
 import { Product } from './product';
 import { ProductCategoryService } from '../product-categories/product-category.service';
@@ -13,31 +13,51 @@ export class ProductService {
   private productsUrl = 'api/products';
   private suppliersUrl = 'api/suppliers';
 
-  constructor(private http: HttpClient , private categoryService:ProductCategoryService) { }
+  constructor(private http: HttpClient, private categoryService: ProductCategoryService) { }
 
-//Get All Products:
+  //Get All Products:
   products$ = this.http.get<Product[]>(this.productsUrl)
     .pipe(
-      map(products => products.map(product => ({...product,price: product.price! * 1.2}) as Product)),
+      map(products => products.map(product => ({ ...product, price: product.price! * 1.2 }) as Product)),
       tap(data => console.log('Products: ', JSON.stringify(data))),
       catchError(this.handleError)
     );
 
   categories$ = this.categoryService.categories$
 
-    //Get Products and Categories:
-      productsWithCategories$ = combineLatest([
-        this.products$,
-        this.categories$
-      ]).pipe(
-        map(([products,categories]) =>
-          products.map(product => ({
-            ...product,
-            price: product.price! * 1.2,
-            category:categories.find(c =>product.categoryId === c.id )?.name
-          } as Product))
-        )
-      )
+  //Get Products and Categories:
+  productsWithCategories$ = combineLatest([
+    this.products$,
+    this.categories$
+  ]).pipe(
+    map(([products, categories]) =>
+      products.map(product => ({
+        ...product,
+        price: product.price! * 1.2,
+        category: categories.find(c => product.categoryId === c.id)?.name
+      } as Product))
+    )
+  )
+
+//Create Action Stream:
+  private selectedProductSubject = new BehaviorSubject<number>(1)
+  selectedProductAction$ = this.selectedProductSubject.asObservable()
+
+  selectedProduct$ = combineLatest([
+    this.products$,
+    this.selectedProductAction$
+  ]).pipe(
+    map(([products,selectedProductId])=>
+      products.find((product) =>product.id === selectedProductId),
+      tap(data => console.log('Selected Product', JSON.stringify(data)))
+    )
+  )
+
+
+  onSelectedProductChanges(selectedProductId:number){
+    this.selectedProductSubject.next(selectedProductId)
+  }
+
 
   private fakeProduct(): Product {
     return {
